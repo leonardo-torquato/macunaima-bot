@@ -93,6 +93,45 @@ bot.command('excluir', async (ctx) => {
     return ctx.reply(`❌ "${palavra}" não encontrada.`);
 });
 
+// Comando para listar todas as palavras no próprio chat
+bot.command('listar', async (ctx) => {
+  try {
+      const res = await pool.query('SELECT palavra, pagina, capitulo FROM dicionario ORDER BY palavra ASC');
+      if (res.rowCount === 0) return ctx.reply('O dicionário está vazio.');
+      
+      let msg = '📖 **Índice Macunaíma**\n\n';
+      res.rows.forEach(p => {
+          msg += `- **${p.palavra}** (Pág. ${p.pagina} | Cap. ${p.capitulo})\n`;
+      });
+      return ctx.reply(msg, { parse_mode: 'Markdown' });
+  } catch (error) {
+      console.error('Erro no /listar:', error);
+      ctx.reply('❌ Erro ao buscar a lista.');
+  }
+});
+
+// Comando para listar palavras por uma página específica
+bot.command('pagina', async (ctx) => {
+  const parametro = ctx.message.text.split(' ')[1];
+  const numero = parseInt(parametro);
+  
+  if (isNaN(numero)) return ctx.reply('⚠️ Uso correto: /pagina [numero]\nExemplo: /pagina 42');
+
+  try {
+      const res = await pool.query('SELECT palavra FROM dicionario WHERE pagina = $1 ORDER BY palavra ASC', [numero]);
+      if (res.rowCount === 0) return ctx.reply(`Nenhuma palavra registrada na página ${numero}.`);
+
+      let msg = `📍 **Palavras da Página ${numero}**\n\n`;
+      res.rows.forEach(p => {
+          msg += `- **${p.palavra}**\n`;
+      });
+      return ctx.reply(msg, { parse_mode: 'Markdown' });
+  } catch (error) {
+      console.error('Erro no /pagina:', error);
+      ctx.reply('❌ Erro ao buscar as palavras.');
+  }
+});
+
 // Painel interativo de exportação
 bot.command('exportar', (ctx) => {
     return ctx.reply('Como você deseja ordenar o seu arquivo CSV?', 
